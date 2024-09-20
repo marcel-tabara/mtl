@@ -2339,6 +2339,11 @@
     nanoid "^3.3.7"
     prop-types "^15.8.1"
 
+"@rjsf/mui@^5.21.1":
+  version "5.21.1"
+  resolved "https://registry.yarnpkg.com/@rjsf/mui/-/mui-5.21.1.tgz#a132b7a94bdc9accaa82ee2baecfc6f35d9b0a2c"
+  integrity sha512-Trlxuv/lBA3SibDsDIYNlgGUJWXHSjf7gBMKc+zfmkrjiOLeEYomXmLDLJbUuSOEREghf6E5npnfGc/NL+zxJw==
+
 "@rjsf/utils@^5.21.1":
   version "5.21.1"
   resolved "https://registry.yarnpkg.com/@rjsf/utils/-/utils-5.21.1.tgz#607d156941f0dbf39811c771774d52b6aedda107"

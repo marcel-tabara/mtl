@@ -1,13 +1,27 @@
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
+import EditNoteIcon from '@mui/icons-material/EditNote';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
 import { Grid2, Typography } from '@mui/material';
 import Box from '@mui/material/Box';
 import IconButton from '@mui/material/IconButton';
 import MenuItem from '@mui/material/MenuItem';
 import Select, { SelectChangeEvent } from '@mui/material/Select';
-import { addToFlatData, sortFlatData, useHeTree } from 'he-tree-react';
+import Form from '@rjsf/mui';
+import { RJSFSchema } from '@rjsf/utils';
+import validator from '@rjsf/validator-ajv8';
+import {
+  addToFlatData,
+  removeByIdInFlatData,
+  sortFlatData,
+  useHeTree,
+} from 'he-tree-react';
 import { useEffect, useState } from 'react';
-import { fldTypes } from './constants';
+import {
+  arrayFieldschema,
+  fldTypes,
+  objectFieldschema,
+  singleFieldschema,
+} from './constants';
 import { IFldtype } from './types';
 import { validateAddFld } from './utils';
 
@@ -15,11 +29,18 @@ let id = 0;
 
 export const Jsfve = () => {
   const keys = { idKey: 'id', parentIdKey: 'parent_id' };
-  const [data, setdata] = useState(() => sortFlatData([] as IFldtype[], keys));
+  const [data, setData] = useState(() => sortFlatData([] as IFldtype[], keys));
   const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null);
   const [nodeToAdd, setNodeToAdd] = useState<string | undefined>('object');
+  const [editNode, setEditNode] = useState<IFldtype | undefined>(undefined);
   const [err, setErr] = useState('');
 
+  const editNodeSchemaType =
+    editNode?.type === 'object'
+      ? objectFieldschema
+      : editNode?.type === 'array'
+      ? arrayFieldschema
+      : singleFieldschema;
   const rnd = () => Math.floor(Math.random() * (10000000 - 1 + 1) + 1);
 
   useEffect(() => {
@@ -28,16 +49,21 @@ export const Jsfve = () => {
     }
   }, [data]);
 
-  const deleteNode = (id: number) => {
+  const editNodeFn = (id: number) => {
     const node = data.find((e) => e.id === id);
     if (node) {
-      const newData = data.filter(
-        (e) => e.id === node.id && e.id === node.parent_id
-      );
-      setdata(newData);
+      setEditNode({
+        ...node,
+      });
     }
   };
 
+  const deleteNode = (id: number) => {
+    const newData = [...data];
+    removeByIdInFlatData(newData, id, keys);
+    setData(newData);
+  };
+  console.log('########## data', data);
   const addNode = () => {
     setErr('');
     const node = fldTypes.find((e) => e.type === nodeToAdd);
@@ -49,36 +75,49 @@ export const Jsfve = () => {
       if (validate.allowed) {
         const newData = [...data];
         const newId = ++id;
-        const name = `${node?.type}_${newId}_${selectedNodeId}_${rnd()}`;
+        const title = `${node?.type}_${newId}_${selectedNodeId}_${rnd()}`;
 
         addToFlatData(
           newData,
           {
+            ...node,
             id: newId,
             parent_id: selectedNodeId,
-            name,
-            type: node?.type,
+            title,
           },
           0,
           keys
         );
-        setdata(newData);
+        setData(newData);
       } else {
         validate?.msg && setErr(validate.msg);
       }
     }
   };
+
   const handleChange = (event: SelectChangeEvent) =>
     setNodeToAdd(event.target.value);
+
+  const onSubmit = ({ formData }: RJSFSchema) => {
+    const idx = data.findIndex((e) => {
+      return e.id === editNode?.id;
+    });
+
+    Object.keys(formData).forEach((e) => {
+      data[idx][e] = formData[e];
+    });
+
+    setEditNode(undefined);
+  };
 
   const { renderTree, placeholder } = useHeTree({
     ...keys,
     data,
     dataType: 'flat',
-    onChange: setdata,
+    onChange: setData,
     renderNodeBox: ({ stat, attrs, isPlaceholder }) => {
       return (
-        <div {...attrs} key={`${attrs.key}_${rnd()}`} className="my-node-box">
+        <div {...attrs} key={`${attrs.key}`} className="my-node-box">
           {isPlaceholder ? (
             <div className="my-placeholder">DROP HERE</div>
           ) : (
@@ -107,12 +146,18 @@ export const Jsfve = () => {
                     <span className="drag-handler" draggable={stat.draggable}>
                       {dragIcon()}
                     </span>
-                    {stat.node.name}
+                    {stat.node.title}
                   </Grid2>
                   <Grid2 size={4}>
                     <span
                       style={{ display: 'flex', justifyContent: 'flex-end' }}
                     >
+                      <IconButton
+                        aria-label="close"
+                        onClick={() => editNodeFn(stat.node?.id ?? 0)}
+                      >
+                        <EditNoteIcon />
+                      </IconButton>
                       <IconButton
                         aria-label="close"
                         onClick={() => deleteNode(stat.node?.id ?? 0)}
@@ -131,47 +176,49 @@ export const Jsfve = () => {
   });
   return (
     <Box>
-      <div className="my-tree no-dragging">
-        <Select
-          labelId="demo-simple-select-label"
-          id="demo-simple-select"
-          value={nodeToAdd?.toString()}
-          label="type"
-          onChange={handleChange}
-          sx={{ minWidth: '250px' }}
-        >
-          {fldTypes.map((e) => (
-            <MenuItem value={e.type} key={`${e.type}_${rnd()}`}>
-              {e.type}
-            </MenuItem>
-          ))}
-        </Select>
-        <IconButton
-          aria-label="close"
-          onClick={addNode}
-          // disabled={!Boolean(type)}
-        >
-          <AddCircleOutlineIcon />
-        </IconButton>
-      </div>
-      {err && (
-        <div
-          className="my-tree no-dragging"
-          style={{
-            border: '1px solid red',
-            backgroundColor: '#D32F2F',
-            color: 'white',
-          }}
-        >
-          <Typography>{err}</Typography>
-        </div>
-      )}
-      <div>
-        {renderTree({
-          className: `my-tree ${placeholder ? 'dragging' : 'no-dragging'}`,
-        })}
-      </div>
-      <style>{`
+      <Grid2 container spacing={2}>
+        <Grid2>
+          <div className="my-tree no-dragging">
+            <Select
+              labelId="demo-simple-select-label"
+              id="demo-simple-select"
+              value={nodeToAdd?.toString()}
+              label="type"
+              onChange={handleChange}
+              sx={{ minWidth: '250px' }}
+            >
+              {fldTypes.map((e) => (
+                <MenuItem value={e.type} key={`${e.type}_${rnd()}`}>
+                  {e.type}
+                </MenuItem>
+              ))}
+            </Select>
+            <IconButton
+              aria-label="close"
+              onClick={addNode}
+              // disabled={!Boolean(type)}
+            >
+              <AddCircleOutlineIcon />
+            </IconButton>
+          </div>
+          {err && (
+            <div
+              className="my-tree no-dragging"
+              style={{
+                border: '1px solid red',
+                backgroundColor: '#D32F2F',
+                color: 'white',
+              }}
+            >
+              <Typography>{err}</Typography>
+            </div>
+          )}
+          <div>
+            {renderTree({
+              className: `my-tree ${placeholder ? 'dragging' : 'no-dragging'}`,
+            })}
+          </div>
+          <style>{`
     .my-tree{
       width: 300px;
       border: 1px solid #ccc;
@@ -227,6 +274,20 @@ export const Jsfve = () => {
       width:16px;
     }
     `}</style>
+        </Grid2>
+        {editNode && (
+          <Grid2>
+            <div className="my-tree no-dragging">
+              <Form
+                schema={editNodeSchemaType}
+                validator={validator}
+                formData={editNode}
+                onSubmit={onSubmit}
+              />
+            </div>
+          </Grid2>
+        )}
+      </Grid2>
     </Box>
   );
 };
