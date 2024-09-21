@@ -20,12 +20,13 @@ export function flatMapToTree(items: FlatItem[]): TreeNode[] {
   items.forEach((item, index) => {
     const { id, parent_id, type, title, ...rest } = item;
     const cleanedRest = removeEmptyFields(rest);
-    const node = { type, ...cleanedRest };
+    const node: TreeNode = { type, ...cleanedRest };
 
     if (type === 'object') {
-      node.properties = {};
+      (node as TreeNode & { properties: Record<string, TreeNode> }).properties =
+        {};
     } else if (type === 'array') {
-      node.items = [];
+      (node as TreeNode & { items: TreeNode[] }).items = [];
     }
 
     if (id !== null) {
@@ -35,7 +36,6 @@ export function flatMapToTree(items: FlatItem[]): TreeNode[] {
       itemMap.set(-index - 1, node);
     }
   });
-
   // Second pass: build the tree structure
   items.forEach((item, index) => {
     const { id, parent_id, type, title } = item;
@@ -50,15 +50,18 @@ export function flatMapToTree(items: FlatItem[]): TreeNode[] {
       const parent = itemMap.get(parent_id);
       if (parent) {
         if (parent.type === 'object' && title) {
-          parent.properties![title] = node;
+          if (parent.properties) {
+            parent.properties[title] = node;
+          }
         } else if (parent.type === 'array') {
-          parent.items!.push(node);
+          if (parent.items) {
+            parent.items.push(node);
+          }
         }
         // Note: We don't add children to primitive types
       }
     }
   });
-
   console.log('########## roots', roots);
   return roots;
 }
