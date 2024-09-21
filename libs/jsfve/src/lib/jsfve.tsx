@@ -22,18 +22,23 @@ import {
   objectFieldschema,
   singleFieldschema,
 } from './constants';
-import { IFldtype } from './types';
+import { flatMapToTree } from './convert';
+import { FlatItem } from './types';
 import { validateAddFld } from './utils';
 
 let id = 0;
 
 export const Jsfve = () => {
   const keys = { idKey: 'id', parentIdKey: 'parent_id' };
-  const [data, setData] = useState(() => sortFlatData([] as IFldtype[], keys));
+  const [data, setData] = useState(() => sortFlatData([] as FlatItem[], keys));
   const [selectedNodeId, setSelectedNodeId] = useState<number | null>(null);
   const [nodeToAdd, setNodeToAdd] = useState<string | undefined>('object');
-  const [editNode, setEditNode] = useState<IFldtype | undefined>(undefined);
+  const [editNode, setEditNode] = useState<FlatItem | undefined>(undefined);
   const [err, setErr] = useState('');
+  const [schema, setSchema] = useState<any>(undefined);
+
+  console.log('########## data', data);
+  console.log('########## schema', schema);
 
   const editNodeSchemaType =
     editNode?.type === 'object'
@@ -46,6 +51,13 @@ export const Jsfve = () => {
   useEffect(() => {
     if (data.length === 1) {
       setSelectedNodeId(data[0].id);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if (data.length > 0) {
+      const sc = flatMapToTree(data);
+      setSchema(sc);
     }
   }, [data]);
 
@@ -63,7 +75,7 @@ export const Jsfve = () => {
     removeByIdInFlatData(newData, id, keys);
     setData(newData);
   };
-  console.log('########## data', data);
+
   const addNode = () => {
     setErr('');
     const node = fldTypes.find((e) => e.type === nodeToAdd);
@@ -97,6 +109,10 @@ export const Jsfve = () => {
 
   const handleChange = (event: SelectChangeEvent) =>
     setNodeToAdd(event.target.value);
+
+  const onSubmitPreview = ({ formData }: RJSFSchema) => {
+    console.log('########## formData', formData);
+  };
 
   const onSubmit = ({ formData }: RJSFSchema) => {
     const idx = data.findIndex((e) => {
@@ -178,6 +194,16 @@ export const Jsfve = () => {
     <Box>
       <Grid2 container spacing={2}>
         <Grid2>
+          {schema !== undefined && (
+            <div className="my-tree no-dragging">
+              <Form
+                schema={schema[0]}
+                validator={validator}
+                //formData={editNode}
+                onSubmit={onSubmitPreview}
+              />
+            </div>
+          )}
           <div className="my-tree no-dragging">
             <Select
               labelId="demo-simple-select-label"
@@ -193,11 +219,7 @@ export const Jsfve = () => {
                 </MenuItem>
               ))}
             </Select>
-            <IconButton
-              aria-label="close"
-              onClick={addNode}
-              // disabled={!Boolean(type)}
-            >
+            <IconButton aria-label="close" onClick={addNode}>
               <AddCircleOutlineIcon />
             </IconButton>
           </div>

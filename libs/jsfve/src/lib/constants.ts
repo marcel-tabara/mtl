@@ -1,7 +1,7 @@
 import { RJSFSchema } from '@rjsf/utils';
-import { IFldtype } from './types';
+import { FlatItem } from './types';
 
-export const fldTypes1: IFldtype[] = [
+export const fldTypes1: FlatItem[] = [
   {
     id: null,
     parent_id: null,
@@ -86,36 +86,36 @@ const baseArrayField = {
   description: '',
   required: '',
   additionalItems: '',
-  uniqueItems: '',
+  uniqueItems: false,
 };
 
 export const fldTypes = [
   {
-    type: 'string',
+    type: 'string' as FlatItem['type'],
     ...baseSingleField,
   },
   {
-    type: 'number',
+    type: 'number' as FlatItem['type'],
     ...baseSingleField,
   },
   {
-    type: 'integer',
+    type: 'integer' as FlatItem['type'],
     ...baseSingleField,
   },
   {
-    type: 'boolean',
+    type: 'boolean' as FlatItem['type'],
     ...baseSingleField,
   },
   {
-    type: 'null',
+    type: 'null' as FlatItem['type'],
     ...baseSingleField,
   },
   {
-    type: 'object',
+    type: 'object' as FlatItem['type'],
     ...baseObjectField,
   },
   {
-    type: 'array',
+    type: 'array' as FlatItem['type'],
     ...baseArrayField,
   },
 ];

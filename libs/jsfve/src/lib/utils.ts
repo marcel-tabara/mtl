@@ -1,10 +1,10 @@
-import { IFldtype, IValidateAddFld } from './types';
+import { FlatItem, IValidateAddFld } from './types';
 
 export const validateAddFld = ({
   allData,
   newFldParentId,
 }: {
-  allData: IFldtype[];
+  allData: FlatItem[];
   newFldParentId: number | null;
 }): IValidateAddFld => {
   const root = allData.find((e) => e.parent_id === null);
